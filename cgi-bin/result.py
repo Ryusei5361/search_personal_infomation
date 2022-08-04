@@ -18,12 +18,14 @@ v_prefecture = form.getvalue("prefecture", "")  # 都道府県
 v_phone_number1 = form.getvalue("phone_number1", "")  # 電話番号（1ブロック目）
 v_phone_number2 = form.getvalue("phone_number2", "")  # 電話番号（2ブロック目）
 v_phone_number3 = form.getvalue("phone_number3", "")  # 電話番号（3ブロック目）
-v_order = form.getvalue("order", "")  # 並べ替え
-v_option1 = form.getvalue("option1", "")  # 並べ替え条件
+v_option1 = form.getvalue("option1", "")  # 並べ替え条件 1
+v_order = form.getvalue("order", "")  # ソート条件
 
 connection = sqlite3.connect("personal_info.sqlite3")
 cur = connection.cursor()
 
+
+# csv ファイルを読み込んでデータベースを作成
 personal_info_list = []
 try:
     with open("dummy.csv", "r") as file:
@@ -39,6 +41,8 @@ try:
 except sqlite3.OperationalError:
     cur.execute("delete from personal_info")
 
+
+# データベースに値を入れる
 for i in personal_info_list:
     if i[0] == "名前":
         pass
@@ -49,21 +53,25 @@ for i in personal_info_list:
                 """)
 
 
-def execute(a):
+# 条件に当てはまるものをデータベースから検索
+def execute(condition):
     cur.execute(f"""
             select * from personal_info where 名前 like '%{v_name_kanji}%' and ふりがな like '%{v_name_hiragana}%'
             and アドレス like '%{v_address}%' and 性別 like '%{v_sex}%' and 年齢 like '%{v_age}%'
             and 誕生日 like '%{v_year}%/%{v_month}%/%{v_date}%' and 婚姻 like '%{v_marry}%' and 血液型 like '%{v_blood}%'
             and 都道府県 like '%{v_prefecture}%' and 電話番号 like '%{v_phone_number1}%-%{v_phone_number2}%-%{v_phone_number3}%'
-            {a}
+            {condition}
             """)
 
 
+# 条件が設定されたか判定
 if len(v_option1) != 0:
     execute(f"order by {v_option1} {v_order}")
 else:
     execute("")
 
+
+# 検索結果を表形式にする
 result_1 = cur.fetchall()
 contents = "<tr>"
 if len(result_1) == 0:
@@ -74,6 +82,8 @@ else:
                     f" <td>{i[5]}</td> <td>{i[6]}</td> <td>{i[7]}</td> <td>{i[8]}</td> <td>{i[9]}</td> </tr> <tr>"
     contents += "</tr>"
 
+
+# 表示結果
 template = """
 <html>
 <head>
@@ -81,38 +91,9 @@ template = """
     <title> 個人情報検索 </title>
 </head>
 <body>
-    <h1> ~ 個人情報を検索できます。 (一部の情報だけでも検索できます) ~ </h1>
-    <form method="POST" action="/cgi-bin/serch_personal_info.py">
-        <div style="padding: 10px; margin-bottom: 5px; display: inline-block; border: 1px solid #333333">
-        <h3> 名前 : <input type="text" name="name_kanji" value={name_kanji}> (例：河田 明) < 名前と名字の間に半角スペースを空ける </h3>
-        <h3> ふりがな : <input type="text" name="name_hiragana" value={name_hiragana}> (例：かわた あきら) < 名前と名字の間に半角スペースを空ける </h3>
-        <h3> アドレス : <input type="text" name="address" value={address}> (例：kawata_akira@example.com) </h3>
-        <h3> 性別 : <input type="text" name="sex" value={sex}> (例：男性) </h3>
-        <h3> 年齢 : <input type="number" name="age" value={age}> (例：80) </h3> 
-        <h3> 誕生日： <input type="number" name="year" value={year}> / <input type="number" name="month" value={month}> / 
-        <input type="number" name="date" value={date}> (例：1937/5/26) </h3>
-        <h3> 婚姻 : <input type="text" name="marry" value={marry}> (既婚 or 未婚) </h3>
-        <h3> 血液型 : <input type="text" name="blood" value={blood}> (例：AB型) </h3>
-        <h3> 都道府県 : <input type="text" name="prefecture" value={prefecture}> (例：東京都) </h3>
-        <h3> 電話番号： <input type="number" name="phone_number1" value={phone_number1}> - 
-        <input type="number" name="phone_number2" value={phone_number2}> - 
-        <input type="number" name="phone_number3" value={phone_number3}> (例：123-456-789) </h3>
-        </div>
-        <h3> 並び替える条件 </h3>
-        <div style="padding: 10px; margin-bottom: 50px; display: inline-block; border: 1px solid #333333">
-        <h3> 条件1 </h3>
-        <p> <input type="radio" name="option1" value="名前"> 名前 <input type="radio" name="option1" value="ふりがな"> ふりがな
-            <input type="radio" name="option1" value="アドレス"> アドレス　<input type="radio" name="option1" value="性別"> 性別 
-            <input type="radio" name="option1" value="年齢"> 年齢 <input type="radio" name="option1" value="誕生日"> 誕生日 
-            <input type="radio" name="option1" value="婚姻"> 婚姻 <input type="radio" name="option1" value="血液型"> 血液型 
-            <input type="radio" name="option1" value="都道府県"> 都道府県 <input type="radio" name="option1" value="電話番号"> 電話番号 </p>
-        <h3> 条件2 </h3>
-        <p> <input type="radio" name="order" value=""> 未ソート <input type="radio" name="order" value="asc"> 昇順 <input type="radio" name="order" value="desc"> 降順 </p>
-        <p> <input type="submit"> </p>
-        </div>
-    </form>
-    <h2> 出力結果：</h2>
-    <h3> 該当人数：{people} 人 </h3>
+    <p><a href="/cgi-bin/search_personal_info.py"> 検索条件へ戻る </a></p>
+    <h1> 出力結果 </h1>
+    <h2> 該当人数：{people} 人 </h2>
     <table border=1>
         <tr>
             <th> 名前 </th>
@@ -128,6 +109,7 @@ template = """
         </tr>
         {contents} 
     </table>
+    <p><a href="/cgi-bin/search_personal_info.py"> 検索条件へ戻る </a></p>
 </body>
 </html>
 """
