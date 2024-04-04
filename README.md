@@ -1,4 +1,4 @@
-# search_personal_infomation
+# 個人情報検索サイト
 [個人情報テストジェネレーター](https://testdata.userlocal.jp/) などでランダムに生成された個人情報を、条件を指定して検索することができるWebサイトを表示するプログラムです。
 
 ## 使用方法
